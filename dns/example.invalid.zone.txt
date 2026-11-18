@@ -1,0 +1,7 @@
+; SOMENTE EXEMPLO TECNICO — example.invalid nao recebe emails e nao e zona DNS real.
+; Nao publicar a chave falsa. Para um dominio proprio, configurar e validar SPF/DKIM/DMARC no provedor DNS.
+example.invalid. IN TXT "v=spf1 -all"
+_dmarc.example.invalid. IN TXT "v=DMARC1; p=reject; rua=mailto:dmarc@example.invalid; adkim=s; aspf=s"
+; DKIM ilustrativo — a chave publica de verdade deve ser extraida do seletor do servidor de email autorizado.
+selector1._domainkey.example.invalid. IN TXT "v=DKIM1; k=rsa; p=PLACEHOLDER_PUBLIC_KEY_NOT_VALID"
+; Registro de exemplo NAO demonstra emails autenticados, entregabilidade nem politica aplicada.

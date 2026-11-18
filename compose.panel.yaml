@@ -1,0 +1,43 @@
+# Uso: docker compose -f compose.wireguard.full.yaml -f compose.panel.yaml up -d --build
+services:
+  panel:
+    user: "1000:1000"
+    build:
+      context: .
+      dockerfile: Dockerfile.panel
+    restart: unless-stopped
+    networks: [panel_net]
+    ports: ["127.0.0.1:8090:8090"]
+    environment:
+      PANEL_USERS_FILE: /auth/users.json
+      PANEL_CLOUD_DB: /cloud/cloud.sqlite3
+    secrets:
+      - panel_session_key
+    volumes:
+      - ./auth/runtime/users.json:/auth/users.json:ro
+      - cloud_data:/cloud:ro
+    command: ["sh","-c","export PANEL_SESSION_KEY=$$(cat /run/secrets/panel_session_key); exec gunicorn -b 0.0.0.0:8090 --workers 1 --access-logfile - 'src.supervision.panel:create_app()'"]
+    depends_on: [cloud]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+  sqli-lab:
+    build:
+      context: .
+      dockerfile: Dockerfile.sqli
+    restart: unless-stopped
+    networks: [sqli_net]
+    ports: ["127.0.0.1:8091:8091"]
+    volumes:
+      - sqli_data:/data
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+networks:
+  panel_net:
+    driver: bridge
+  sqli_net:
+    driver: bridge
+volumes:
+  sqli_data: {}
+secrets:
+  panel_session_key:
+    file: ./auth/runtime/session.key

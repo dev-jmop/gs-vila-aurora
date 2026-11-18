@@ -1,0 +1,1 @@
+"""Vila Aurora source package."""

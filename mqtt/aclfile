@@ -1,0 +1,31 @@
+# Certificado X.509 CN usado como username.
+# Uma identidade por dispositivo; negacao por padrao.
+user sensor-centro
+topic write vila/centro/telemetry
+
+user edge-centro
+topic read vila/centro/telemetry
+
+user sensor-escola
+topic write vila/escola/telemetry
+
+user edge-escola
+topic read vila/escola/telemetry
+
+user sensor-ubs
+topic write vila/ubs/telemetry
+
+user edge-ubs
+topic read vila/ubs/telemetry
+
+user sensor-horta
+topic write vila/horta/telemetry
+
+user edge-horta
+topic read vila/horta/telemetry
+
+user sensor-abrigo
+topic write vila/abrigo/telemetry
+
+user edge-abrigo
+topic read vila/abrigo/telemetry

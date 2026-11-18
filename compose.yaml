@@ -1,0 +1,250 @@
+name: vila-aurora
+# Etapa 2B: mTLS obrigatorio, isolamento de brokers, seguranca da WAN pendente.
+services:
+  cloud:
+    build: .
+    command: python -m src.cloud
+    restart: unless-stopped
+    networks: [wan]
+    ports: ['127.0.0.1:8080:8080']
+    environment: {DB_PATH: '/data/cloud.sqlite3'}
+    volumes: [cloud_data:/data]
+  mqtt-centro:
+    image: eclipse-mosquitto:2.0
+    restart: unless-stopped
+    networks: [field_centro]
+    volumes:
+      - ./mqtt/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./mqtt/aclfile:/mosquitto/config/aclfile:ro
+      - ./pki/runtime/ca/certs/ca.crt:/certs/ca.crt:ro
+      - ./pki/runtime/ca/crl/ca.crl:/certs/ca.crl:ro
+      - ./pki/runtime/servers/mqtt-centro.crt:/certs/server.crt:ro
+      - ./pki/runtime/servers/mqtt-centro.key:/certs/server.key:ro
+  mqtt-escola:
+    image: eclipse-mosquitto:2.0
+    restart: unless-stopped
+    networks: [field_escola]
+    volumes:
+      - ./mqtt/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./mqtt/aclfile:/mosquitto/config/aclfile:ro
+      - ./pki/runtime/ca/certs/ca.crt:/certs/ca.crt:ro
+      - ./pki/runtime/ca/crl/ca.crl:/certs/ca.crl:ro
+      - ./pki/runtime/servers/mqtt-escola.crt:/certs/server.crt:ro
+      - ./pki/runtime/servers/mqtt-escola.key:/certs/server.key:ro
+  mqtt-ubs:
+    image: eclipse-mosquitto:2.0
+    restart: unless-stopped
+    networks: [field_ubs]
+    volumes:
+      - ./mqtt/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./mqtt/aclfile:/mosquitto/config/aclfile:ro
+      - ./pki/runtime/ca/certs/ca.crt:/certs/ca.crt:ro
+      - ./pki/runtime/ca/crl/ca.crl:/certs/ca.crl:ro
+      - ./pki/runtime/servers/mqtt-ubs.crt:/certs/server.crt:ro
+      - ./pki/runtime/servers/mqtt-ubs.key:/certs/server.key:ro
+  mqtt-horta:
+    image: eclipse-mosquitto:2.0
+    restart: unless-stopped
+    networks: [field_horta]
+    volumes:
+      - ./mqtt/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./mqtt/aclfile:/mosquitto/config/aclfile:ro
+      - ./pki/runtime/ca/certs/ca.crt:/certs/ca.crt:ro
+      - ./pki/runtime/ca/crl/ca.crl:/certs/ca.crl:ro
+      - ./pki/runtime/servers/mqtt-horta.crt:/certs/server.crt:ro
+      - ./pki/runtime/servers/mqtt-horta.key:/certs/server.key:ro
+  mqtt-abrigo:
+    image: eclipse-mosquitto:2.0
+    restart: unless-stopped
+    networks: [field_abrigo]
+    volumes:
+      - ./mqtt/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./mqtt/aclfile:/mosquitto/config/aclfile:ro
+      - ./pki/runtime/ca/certs/ca.crt:/certs/ca.crt:ro
+      - ./pki/runtime/ca/crl/ca.crl:/certs/ca.crl:ro
+      - ./pki/runtime/servers/mqtt-abrigo.crt:/certs/server.crt:ro
+      - ./pki/runtime/servers/mqtt-abrigo.key:/certs/server.key:ro
+  edge-centro:
+    build: .
+    restart: unless-stopped
+    command: python -m src.mqtt_edge
+    depends_on: [mqtt-centro]
+    networks: [field_centro, wan]
+    environment:
+      SITE: 'centro'
+      MQTT_HOST: 'mqtt-centro'
+      MQTT_PORT: '8883'
+      CENTRAL_URL: 'http://cloud:8080/events'
+      SYNC_INTERVAL: '3'
+      DB_PATH: '/data/events.sqlite3'
+    volumes:
+      - ./pki/runtime/ca/certs/ca.crt:/certs/ca.crt:ro
+      - ./pki/runtime/clients/edge-centro.crt:/certs/client.crt:ro
+      - ./pki/runtime/clients/edge-centro.key:/certs/client.key:ro
+      - centro_data:/data
+  sensor-centro:
+    build: .
+    restart: unless-stopped
+    command: python -m src.mqtt_sensor
+    depends_on: [mqtt-centro]
+    networks: [field_centro]
+    environment:
+      SITE: 'centro'
+      MQTT_HOST: 'mqtt-centro'
+      MQTT_PORT: '8883'
+      PUBLISH_INTERVAL: '5'
+    volumes:
+      - ./pki/runtime/ca/certs/ca.crt:/certs/ca.crt:ro
+      - ./pki/runtime/clients/sensor-centro.crt:/certs/client.crt:ro
+      - ./pki/runtime/clients/sensor-centro.key:/certs/client.key:ro
+  edge-escola:
+    build: .
+    restart: unless-stopped
+    command: python -m src.mqtt_edge
+    depends_on: [mqtt-escola]
+    networks: [field_escola, wan]
+    environment:
+      SITE: 'escola'
+      MQTT_HOST: 'mqtt-escola'
+      MQTT_PORT: '8883'
+      CENTRAL_URL: 'http://cloud:8080/events'
+      SYNC_INTERVAL: '3'
+      DB_PATH: '/data/events.sqlite3'
+    volumes:
+      - ./pki/runtime/ca/certs/ca.crt:/certs/ca.crt:ro
+      - ./pki/runtime/clients/edge-escola.crt:/certs/client.crt:ro
+      - ./pki/runtime/clients/edge-escola.key:/certs/client.key:ro
+      - escola_data:/data
+  sensor-escola:
+    build: .
+    restart: unless-stopped
+    command: python -m src.mqtt_sensor
+    depends_on: [mqtt-escola]
+    networks: [field_escola]
+    environment:
+      SITE: 'escola'
+      MQTT_HOST: 'mqtt-escola'
+      MQTT_PORT: '8883'
+      PUBLISH_INTERVAL: '5'
+    volumes:
+      - ./pki/runtime/ca/certs/ca.crt:/certs/ca.crt:ro
+      - ./pki/runtime/clients/sensor-escola.crt:/certs/client.crt:ro
+      - ./pki/runtime/clients/sensor-escola.key:/certs/client.key:ro
+  edge-ubs:
+    build: .
+    restart: unless-stopped
+    command: python -m src.mqtt_edge
+    depends_on: [mqtt-ubs]
+    networks: [field_ubs, wan]
+    environment:
+      SITE: 'ubs'
+      MQTT_HOST: 'mqtt-ubs'
+      MQTT_PORT: '8883'
+      CENTRAL_URL: 'http://cloud:8080/events'
+      SYNC_INTERVAL: '3'
+      DB_PATH: '/data/events.sqlite3'
+    volumes:
+      - ./pki/runtime/ca/certs/ca.crt:/certs/ca.crt:ro
+      - ./pki/runtime/clients/edge-ubs.crt:/certs/client.crt:ro
+      - ./pki/runtime/clients/edge-ubs.key:/certs/client.key:ro
+      - ubs_data:/data
+  sensor-ubs:
+    build: .
+    restart: unless-stopped
+    command: python -m src.mqtt_sensor
+    depends_on: [mqtt-ubs]
+    networks: [field_ubs]
+    environment:
+      SITE: 'ubs'
+      MQTT_HOST: 'mqtt-ubs'
+      MQTT_PORT: '8883'
+      PUBLISH_INTERVAL: '5'
+    volumes:
+      - ./pki/runtime/ca/certs/ca.crt:/certs/ca.crt:ro
+      - ./pki/runtime/clients/sensor-ubs.crt:/certs/client.crt:ro
+      - ./pki/runtime/clients/sensor-ubs.key:/certs/client.key:ro
+  edge-horta:
+    build: .
+    restart: unless-stopped
+    command: python -m src.mqtt_edge
+    depends_on: [mqtt-horta]
+    networks: [field_horta, wan]
+    environment:
+      SITE: 'horta'
+      MQTT_HOST: 'mqtt-horta'
+      MQTT_PORT: '8883'
+      CENTRAL_URL: 'http://cloud:8080/events'
+      SYNC_INTERVAL: '3'
+      DB_PATH: '/data/events.sqlite3'
+    volumes:
+      - ./pki/runtime/ca/certs/ca.crt:/certs/ca.crt:ro
+      - ./pki/runtime/clients/edge-horta.crt:/certs/client.crt:ro
+      - ./pki/runtime/clients/edge-horta.key:/certs/client.key:ro
+      - horta_data:/data
+  sensor-horta:
+    build: .
+    restart: unless-stopped
+    command: python -m src.mqtt_sensor
+    depends_on: [mqtt-horta]
+    networks: [field_horta]
+    environment:
+      SITE: 'horta'
+      MQTT_HOST: 'mqtt-horta'
+      MQTT_PORT: '8883'
+      PUBLISH_INTERVAL: '5'
+    volumes:
+      - ./pki/runtime/ca/certs/ca.crt:/certs/ca.crt:ro
+      - ./pki/runtime/clients/sensor-horta.crt:/certs/client.crt:ro
+      - ./pki/runtime/clients/sensor-horta.key:/certs/client.key:ro
+  edge-abrigo:
+    build: .
+    restart: unless-stopped
+    command: python -m src.mqtt_edge
+    depends_on: [mqtt-abrigo]
+    networks: [field_abrigo, wan]
+    environment:
+      SITE: 'abrigo'
+      MQTT_HOST: 'mqtt-abrigo'
+      MQTT_PORT: '8883'
+      CENTRAL_URL: 'http://cloud:8080/events'
+      SYNC_INTERVAL: '3'
+      DB_PATH: '/data/events.sqlite3'
+    volumes:
+      - ./pki/runtime/ca/certs/ca.crt:/certs/ca.crt:ro
+      - ./pki/runtime/clients/edge-abrigo.crt:/certs/client.crt:ro
+      - ./pki/runtime/clients/edge-abrigo.key:/certs/client.key:ro
+      - abrigo_data:/data
+  sensor-abrigo:
+    build: .
+    restart: unless-stopped
+    command: python -m src.mqtt_sensor
+    depends_on: [mqtt-abrigo]
+    networks: [field_abrigo]
+    environment:
+      SITE: 'abrigo'
+      MQTT_HOST: 'mqtt-abrigo'
+      MQTT_PORT: '8883'
+      PUBLISH_INTERVAL: '5'
+    volumes:
+      - ./pki/runtime/ca/certs/ca.crt:/certs/ca.crt:ro
+      - ./pki/runtime/clients/sensor-abrigo.crt:/certs/client.crt:ro
+      - ./pki/runtime/clients/sensor-abrigo.key:/certs/client.key:ro
+networks:
+  wan: {}
+  field_centro:
+    internal: true
+  field_escola:
+    internal: true
+  field_ubs:
+    internal: true
+  field_horta:
+    internal: true
+  field_abrigo:
+    internal: true
+volumes:
+  cloud_data: {}
+  centro_data: {}
+  escola_data: {}
+  ubs_data: {}
+  horta_data: {}
+  abrigo_data: {}

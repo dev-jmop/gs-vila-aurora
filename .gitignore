@@ -1,0 +1,27 @@
+# Python e ferramentas locais
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+# Bancos, arquivos temporarios e backups
+runtime/
+*.sqlite3
+*.sqlite
+*.db
+*.bak
+*.tmp
+.env
+.env.*
+# Chaves privadas e certificados gerados
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.csr
+*.srl
+/pki/
+vpn/runtime/
+auth/runtime/
+# Logs, eventos e evidencias locais podem conter identificadores
+evidence/runtime/

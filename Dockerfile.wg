@@ -1,0 +1,11 @@
+FROM python:3.12-slim
+WORKDIR /app
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+RUN apt-get update && apt-get install -y --no-install-recommends wireguard-tools iproute2 iptables ca-certificates && rm -rf /var/lib/apt/lists/*
+COPY requirements.txt /app/
+RUN pip install --no-cache-dir -r requirements.txt
+COPY src /app/src
+COPY vpn/entrypoint.sh /usr/local/bin/va-wg-entrypoint
+RUN chmod +x /usr/local/bin/va-wg-entrypoint
+ENTRYPOINT ["/usr/local/bin/va-wg-entrypoint"]
+CMD ["python", "-m", "src.mqtt_edge"]
